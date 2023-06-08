@@ -29,7 +29,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "1.0.4-SNAPSHOT"
+    version             = "1.0.4_r3"
     status              = "integration"
     description         = "Simple Java deployment"
     ext.url             = "https://github.com/puniverse/capsule"
@@ -53,16 +53,16 @@ subprojects {
     }
 
     configurations {
-        [compile, runtime]*.resolutionStrategy {
+        [implementation, runtimeOnly]*.resolutionStrategy {
             failOnVersionConflict()
         }
     }
 
     dependencies {
-        testCompile 'junit:junit:4.12'
-        testCompile 'org.truth0:truth:0.23'
-        testCompile 'com.google.jimfs:jimfs:1.1'
-        testCompile 'org.jooq:joor:0.9.6'
+        testImplementation 'junit:junit:4.12'
+        testImplementation 'org.truth0:truth:0.23'
+        testImplementation 'com.google.jimfs:jimfs:1.1'
+        testImplementation 'org.jooq:joor:0.9.6'
         javancss 'org.codehaus.javancss:javancss:33.54'
     }
 
@@ -105,27 +105,19 @@ subprojects {
     }
 
     jacocoTestReport {
-        reports {
-            xml.enabled = true // coveralls plugin depends on xml format report
-            html.enabled = true
-            csv.enabled = false
-//          xml.destination = "${buildDir}/reports/jacoco/test/jacocoTestReport_${project.name}.xml"
-        }
     }
-    
-//  check.dependsOn jacocoTestReport
     
     javadoc {
         options.links = [ "http://docs.oracle.com/javase/7/docs/api/" ]
     }
 
     task sourcesJar(type: Jar, dependsOn: classes) {
-        classifier = 'sources'
+        archiveClassifier = 'sources'
         from sourceSets.main.allSource
     }
 
     task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier = 'javadoc'
+        archiveClassifier = 'javadoc'
         from javadoc.destinationDir
     }
 
@@ -133,26 +125,26 @@ subprojects {
     //        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
     //    }
 
-    task javancss(dependsOn: 'classes') << {
-        ant {
-            logging.level = LogLevel.INFO
-            taskdef(name:'javancss', classname:'javancss.JavancssAntTask', classpath: configurations.javancss.asPath)
-            javancss(
-                srcdir:'src/main/java',
-                abortOnFail:'true',
-                generateReport:'true',
-                packageMetrics:'true',
-                classMetrics:'false',
-                functionMetrics:'false'
-                // outputFile: reportName,
-            )
-        }
+    task javancss(dependsOn: 'classes') {
+//        ant {
+//            logging.level = LogLevel.INFO
+//            taskdef(name:'javancss', classname:'javancss.JavancssAntTask', classpath: configurations.javancss.asPath)
+//            javancss(
+//                srcdir:'src/main/java',
+//                abortOnFail:'true',
+//                generateReport:'true',
+//                packageMetrics:'true',
+//                classMetrics:'false',
+//                functionMetrics:'false'
+//                // outputFile: reportName,
+//            )
+//        }
     }
 
     assemble.dependsOn javancss
 
     ///////// Publish Artifacts
-    apply plugin: 'maven'
+    apply plugin: 'maven-publish'
     apply plugin: 'signing'
 
     artifacts {
@@ -166,52 +158,12 @@ subprojects {
         sign configurations.archives
     }
 
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment { deployment -> signing.signPom(deployment) }
-
-                repository(
-                    url: (isReleaseVersion ?
-                              "https://oss.sonatype.org/service/local/staging/deploy/maven2" :
-                              "https://oss.sonatype.org/content/repositories/snapshots")) {
-                    authentication(userName: sonatypeUsername, password: sonatypePassword)
-                }
-
-                pom.project {
-                    name project.name
-                    packaging 'jar'
-                    description project.description
-                    url project.url
-                    scm {
-                        url project.scmUrl
-                        connection project.scmConnection
-                        developerConnection project.scmConnection
-                    }
-                    licenses {
-                        license {
-                            name project.licenseName
-                            url project.licenseUrl
-                            distribution 'repo'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id 'pron'
-                            name 'Ron Pressler'
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     defaultTasks 'build'
 }
 
 project (':capsule') {
     dependencies {
-        testCompile project(':capsule-util')
+        testImplementation project(':capsule-util')
     }
 
     jar {
@@ -229,8 +181,8 @@ project (':capsule') {
 
 project (':capsule-util') {
     dependencies {
-        runtime project(':capsule')
-        compile files("${System.getProperty('java.home')}/../lib/tools.jar")
+        runtimeOnly project(':capsule')
+        implementation files("${System.getProperty('java.home')}/../lib/tools.jar")
     }
 
     javadoc {
@@ -245,12 +197,6 @@ task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
     sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
     classDirectories =  files(subprojects.sourceSets.main.output)
     executionData = files(subprojects.jacocoTestReport.executionData)
-    reports {
-        html.enabled = true
-        xml.enabled = true
-        csv.enabled = false
-        xml.destination = "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
-    }
 }
 
 coveralls {
