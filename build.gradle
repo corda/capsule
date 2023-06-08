@@ -177,6 +177,16 @@ project (':capsule') {
         options.noDeprecated = true
         excludes = [ "capsule/**" ]
     }
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                artifactId 'capsule'
+
+                from components.java
+            }
+        }
+    }
 }
 
 project (':capsule-util') {
